@@ -1,0 +1,91 @@
+Steps:
+
+#Create the basic initial app
+-mkdir <file name>
+-cd into directory
+-yarn init -y or npm init -y
+-mkdir src
+-touch src/index.js
+-yarn add graphql-yoga or npm install graphql-yoga
+
+
+#inside the index.js file
+-require your GraphQL Server
+-declare your resolvers object
+-instantiate Server
+    -server needs to have typeDefs(routes to schema) and resolvers (object)
+-start the server (node src/index.js)
+-this will host the graphql playground at local port 4000
+
+#General flow:
+-first you want to create the schema
+-once your schema is defined you want to create resolvers for each type in your schema
+
+#Connecting to a prisma database
+-yarn add -g prisma or npm install -g prisma
+-mkdir prisma
+-touch prisma/prisma.yaml
+    -this is the main configuration file for your prisma setup
+    -should at minimum contain an endpoint, a datamodel and a generate.
+-touch prisma/datamodel.prisma
+    -contains the definition of your datamodel. It defines the applications models which will each be mapped to a table in the underlying database.
+    -for each data type you have in your graphql schema, you should have the same in your prisma datamodel;
+    -use @id to have prisma auto-generate and store unique id's
+-prisma deploy
+-follow prompts
+-prisma generate (generates a new folder "generated")
+
+
+
+
+
+
+
+## NOTES ##
+-typeDefs = path to your graphql schema
+
+-RESOLVERS = each field that will receive data from a query should have one of these associated with it. This is a function that knows how to return the data to the client from the API
+
+-QUERIES = these are endpoints that query the api for data. These are essentially objects within objects
+
+-MUTATIONS = these are endpoints that modify data. Mutations should take in parameters (or args) and return a Type(aka. table)
+
+-SUBSCRIPTIONS = subscriptions initiate an open link between the server and the client.
+    -This is useful when you need to data to be updated in real time from the server. Such as likes on a post on facebook.
+    -When you initiate a Type of Subscription in your schema you are declaring a list of subscriptions that the server supports
+    -There are two common ways to do this:
+        -Event-based subscriptions = updates when something happens such as a user clicking like or commenting on a post.
+        -Live Queries = This approach requires the client to subscribe to events that it cares about OR to subscribe to a query and ask for updates every time the result of that query changes.
+        # Event-Based VS Live Queries
+        Live Queries subscribe to the entire query, this becomes tricky to implement because many different events could have an effect on your query. In order to have control over what event will trigger a modification of the query you have to invision every instance that could modify it, whereas if you were to use an Event-Based subscription you can define EXACTLY what event will trigger your subscriptions.
+
+-FILTERING = These are defined on your Query Type in the schema and implemented in your Query resolvers. In the schema you would declare the field you want to filter, then pass in filter as a parameter with a type requirement, then define what Type object will be returned. EX.
+    -type Query {
+        feed(filter: String) : [Link!]!
+    }
+        - this says when I query this table, I want the option to filter based on a string passed in, then I want it to return an array of Link table entries that are not null, nor can the array be null. Meaning that you will always get AT MINIMUM an empty array back.
+    -next, you will need to create the resolver for this query. this resolver (function that takes in 4 parameters: parent, args, context, info) should create a where object that will be passed to the prisma server. It should express our filter conditions. see example in Query.js
+
+-PAGINATION = typically 2 different approaches in traditional API design:
+    -Limit-Offset: request a specific chunk of the list by passing in a start (offset) and end (limit) index.
+    -Cursor-based: Each element has a UID (cursor).. Clients would pass the UID of the starting element and the count of the items to be retrieved.
+    -Notes use Limit-Offset...
+        - In GraphQL limit actually is referred to as either first or last.
+            -first: grabs the first x elements after a given start index.
+            -last: grabs the last x elements after a given start index
+        -The start index is reffered to as skip, since you are skipping that many elements in the list before collecting items. When not provided it defaults to 0.
+        -pagination is added in a similar was to filter. Simply pass skip/first/last into the Query on your schema and implement the resolver for it. See the example in Query.js
+
+-SORTING = allows you to define the order in which you would like the data returned ie alphabetically, numberically or chronologically in ASC or DESC order.
+    -very easy to implement, much like filter and pagination you pass in orderBy as a parameter to you Query on your schema, then you would implement it on your resolver. See example in Query.js
+    -you can create an enum with all of the ordering options... ex:
+        enum LinkOrderByInput {
+            description_ASC,
+            description_DESC
+        }
+    -...you would then use this as a parameter type in your schema's query: orderBy: LinkOrderByInput
+
+-parent
+-args
+-context
+-info

@@ -1,0 +1,68 @@
+# pagination used it graphqls form of Limit-Offset(starting index = offset and count of items to be retrieved=limit)
+# GraphQL works a little differently..
+# limit(normally) = first(GraphQl) (grabbing the first x elements after a provided start index)
+# OR you can use limit(normally) = last(GraphQL) (grabbing last x elements after start index)
+# start-index (normally) = skip(graphql) because you are "skipping" that many elements in the list before collecting the returning elements
+
+# Feed will now accept filtering (filter: string), sorting(skip, first), and sorting(orderBy)
+
+type Query {
+        info: String!
+        feed(filter: String, skip: Int, first: Int, orderBy: LinkOrderByInput): Feed!
+        link(id: ID!): Link
+        postedBy: User
+        votes: [Vote!]!
+    }
+
+    type Feed {
+        links: [Link!]!
+        count: Int!
+    }
+
+    type Mutation {
+        post(url: String!, description: String!): Link!
+        signup(email: String!, password: String!, name: String!): AuthPayload
+        login(email: String!, password: String!): AuthPayload
+        vote(linkId: ID!): Vote
+    }
+
+    type Link {
+        id: ID!
+        description: String!
+        url: String!
+        postedBy: User
+        votes: [Vote!]!
+    }
+
+    type AuthPayload {
+        token: String
+        user: User
+    }
+
+    type User {
+        id: ID!
+        name: String!
+        email: String!
+        links: [Link!]!
+    }
+
+    type Subscription {
+        newLink: Link,
+        newVote: Vote
+    }
+
+    type Vote {
+        id: ID!
+        link: Link!
+        user: User!
+    }
+
+# created to give users the ability to sort as they need
+    enum LinkOrderByInput {
+        description_ASC
+        description_DESC
+        url_ASC
+        url_DESC
+        createdAt_ASC
+        createdAt_DESC
+    }
